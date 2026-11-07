@@ -11,6 +11,7 @@ const $ = id => document.getElementById(id);
 let selectedCategory = "";
 let client = null;
 let currentUser = null;
+let currentIsAdmin = false;
 let recoveryMode = false;
 let editingId = null;
 let editingVersion = null;
@@ -109,6 +110,62 @@ async function deleteSelectedDocuments() {
     if (storageError) console.warn("Storageに未参照の書類が残りました",storageError);
   }
 }
+// 管理者によるマニュアル全体の削除（Storageを先に処理し、最後にDBを削除）
+async function deleteStorageFolder(bucket, manualId) {
+  const storage = client.storage.from(bucket);
+  const keys = [];
+  let offset = 0;
+  const pageSize = 100;
+  while (true) {
+    const {data,error} = await storage.list(manualId, {limit:pageSize,offset,sortBy:{column:"name",order:"asc"}});
+    if (error) throw new Error(`${bucket} のファイル一覧取得に失敗: ${error.message}`);
+    const rows = data || [];
+    for (const row of rows) {
+      if (!row.id) throw new Error(`${bucket} に未対応のフォルダーがあります。削除を中断しました。`);
+      keys.push(`${manualId}/${row.name}`);
+    }
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  for (let i=0;i<keys.length;i+=100) {
+    const {error} = await storage.remove(keys.slice(i,i+100));
+    if (error) throw new Error(`${bucket} の実ファイル削除に失敗: ${error.message}`);
+  }
+}
+async function deleteCurrentManual() {
+  if (!currentIsAdmin || !currentUser || !viewingId) return;
+  const manual = manuals.find(m=>m.id===viewingId);
+  if (!manual) return;
+  if (!confirm(`「${manual.title}」を完全に削除します。\n写真・書類・変更履歴も削除対象です。\nこの操作は元に戻せません。続行しますか？`)) return;
+  const typed = prompt(`誤削除防止のため、マニュアル名を入力してください。\n${manual.title}`);
+  if (typed !== manual.title) {
+    if (typed !== null) alert("マニュアル名が一致しません。削除を中止しました。");
+    return;
+  }
+  const button = $("detailDeleteButton");
+  button.disabled = true;
+  try {
+    // DBの行が存在する間に実ファイルを消す。途中失敗時は再実行できる。
+    await deleteStorageFolder(IMAGE_BUCKET,manual.id);
+    await deleteStorageFolder(DOCUMENT_BUCKET,manual.id);
+    const {data,error} = await client.rpc("delete_manual_admin",{p_id:manual.id});
+    if (error) throw error;
+    if (data !== true) throw new Error("削除が完了したことを確認できませんでした。");
+    viewingId=null;
+    selectedCategory="";
+    $("searchInput").value="";
+    await loadManuals();
+    renderCategories();
+    show("homeView");
+    alert("マニュアルを削除しました。");
+  } catch(error) {
+    console.error("マニュアル削除エラー",error);
+    alert("削除処理が完了しませんでした。\n"+(error.message||"不明なエラー")+"\n一部のファイルが削除されている可能性があります。管理者が状態を確認し、必要に応じて再実行してください。");
+  } finally {
+    button.disabled=false;
+  }
+}
+
 async function renderDetailDocuments(manualId) {
   const target=$("detailDocuments"); target.textContent="添付書類を読み込んでいます…";
   try {
@@ -256,6 +313,8 @@ function show(view) {
     $(id).classList.toggle("hidden", id !== view);
   });
   $("logoutButton").classList.toggle("hidden", !currentUser || view === "resetView");
+  const deleteButton = $("detailDeleteButton");
+  if (deleteButton) deleteButton.classList.toggle("hidden", !currentIsAdmin || view !== "detailView");
   const homeButton = $("globalHomeButton");
   if (homeButton) homeButton.classList.toggle("hidden", !currentUser || view === "loginView" || view === "resetView" || view === "homeView");
   window.scrollTo(0, 0);
@@ -644,11 +703,16 @@ async function applySession(session) {
   const user = session?.user;
   if (!user) {
     currentUser = null;
+    currentIsAdmin = false;
     show("loginView");
     return;
   }
   try {
     await checkActiveStaff(user);
+    const {data: profile,error:profileError} = await client.from("profiles")
+      .select("role,active").eq("id",user.id).single();
+    if (profileError || !profile?.active) throw new Error("スタッフ情報を確認できません。");
+    currentIsAdmin = profile.role === "admin";
     currentUser = user;
     $("loginMessage").textContent = "";
     show("homeView");
@@ -661,6 +725,7 @@ async function applySession(session) {
     }
   } catch (error) {
     currentUser = null;
+    currentIsAdmin = false;
     await client.auth.signOut();
     show("loginView");
     $("loginMessage").textContent = error.message;
@@ -697,6 +762,7 @@ async function logout() {
     return;
   }
   currentUser = null;
+  currentIsAdmin = false;
   show("loginView");
 }
 async function sendResetEmail(event) {
@@ -822,10 +888,18 @@ async function init() {
   historyButton.className = "back";
   historyButton.textContent = "変更履歴を見る";
   historyButton.addEventListener("click", showRevisions);
+  const deleteButton = document.createElement("button");
+  deleteButton.id = "detailDeleteButton";
+  deleteButton.type = "button";
+  deleteButton.className = "back hidden";
+  deleteButton.style.color = "#a12632";
+  deleteButton.style.borderColor = "#a12632";
+  deleteButton.textContent = "このマニュアルを削除（管理者のみ）";
+  deleteButton.addEventListener("click",deleteCurrentManual);
   const panel = document.createElement("div");
   panel.id = "revisionPanel";
   panel.className = "hidden";
-  detail.append(edit, historyButton, panel);
+  detail.append(edit, historyButton, deleteButton, panel);
   $("editorView").querySelector("h2").id = "editorHeading";
   $("manualForm").querySelector('button[type="submit"]').id = "editorSubmit";
   const tagWrap = document.createElement("label");
