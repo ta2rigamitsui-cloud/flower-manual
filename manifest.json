@@ -1,0 +1,11 @@
+{
+  "name": "社内マニュアル共有",
+  "short_name": "社内マニュアル",
+  "description": "社内マニュアルを検索・閲覧するアプリ",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#08613f"
+}

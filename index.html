@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#263D59">
+  <meta name="description" content="社内マニュアル共有アプリ">
+  <title>社内マニュアル</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="header"><div class="header-inner"><span aria-hidden="true">▤</span><h1>社内マニュアル</h1><button id="logoutButton" class="logout-button hidden" type="button">ログアウト</button></div></header>
+  <main class="container">
+    <section id="loginView" class="view hidden">
+      <h2>ログイン</h2>
+      <form id="loginForm">
+        <label>メールアドレス<input type="email" name="email" autocomplete="username" required></label>
+        <label>パスワード<input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">ログイン</button>
+      </form>
+      <p id="loginMessage" class="muted" role="status"></p>
+      <button id="forgotPasswordButton" class="back" type="button">パスワードを忘れた場合</button>
+      <div id="recoveryPanel" class="hidden">
+        <h3>パスワード再設定メール</h3>
+        <form id="recoveryForm">
+          <label>登録済みメールアドレス<input type="email" name="email" autocomplete="email" required></label>
+          <button class="primary" type="submit">再設定メールを送信</button>
+        </form>
+        <p id="recoveryMessage" class="muted" role="status"></p>
+      </div>
+    </section>
+    <section id="resetView" class="view hidden">
+      <h2>新しいパスワードの設定</h2>
+      <p id="resetMessage" class="muted" role="status"></p>
+      <form id="resetForm">
+        <label>新しいパスワード（8文字以上）<input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+        <label>確認用パスワード<input type="password" name="confirmPassword" autocomplete="new-password" minlength="8" required></label>
+        <button class="primary" type="submit">パスワードを変更</button>
+      </form>
+    </section>
+    <section id="homeView" class="hidden">
+      <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="キーワードで検索" aria-label="マニュアルを検索"></label>
+      <div id="categories" class="categories" aria-label="カテゴリー"></div>
+      <section class="recent"><h2 id="listTitle">最近の更新</h2><div id="manualList" class="manual-list"></div></section>
+      <button id="newButton" class="primary" type="button">＋ マニュアルを登録</button>
+      <p class="note">登録したマニュアルはスタッフ間で共有されます。</p>
+    </section>
+    <section id="detailView" class="view hidden" aria-live="polite"><button class="back" type="button" data-back>← 戻る</button><h2 id="detailTitle"></h2><p id="detailMeta" class="muted"></p><div id="detailBody" class="detail-body"></div><div id="detailImages" class="image-grid" aria-label="マニュアルの写真"></div><section class="document-section"><h3>添付書類（PDF・Word）</h3><div id="detailDocuments" class="document-list"></div></section></section>
+    <section id="editorView" class="view hidden"><button class="back" type="button" data-back>← 戻る</button><h2>新しいマニュアル</h2><form id="manualForm"><label>タイトル<input name="title" required maxlength="100" placeholder="例：花束の制作手順"></label><label>カテゴリー<select name="category" id="categorySelect" required></select></label><label>本文<textarea name="body" rows="7" required placeholder="手順や注意点を入力"></textarea></label><div class="photo-section"><label for="photoInput">写真（最大5枚・1枚5MB以内）</label><input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple><p id="photoCount" class="muted" aria-live="polite">0 / 5枚</p><div id="photoPreview" class="image-grid"></div><p class="muted">JPEG・PNG・WebP対応。写真は最大5枚まで登録できます。</p></div><div class="document-section"><label for="documentInput">添付書類（PDF・Word：最大5件・各10MB以内）</label><input id="documentInput" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple><p id="documentCount" class="muted" aria-live="polite">0 / 5ファイル</p><div id="documentPreview" class="document-list"></div></div><button class="primary" type="submit">入力内容を確認</button></form></section>
+  </main>
+</body>
+</html>
