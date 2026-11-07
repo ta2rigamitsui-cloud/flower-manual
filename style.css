@@ -1,25 +1,25 @@
 
 /* ===================================
    FLOWER MANUAL PWA Ver.1.0
-   Navy Blue Theme
+   FLOWERED Charcoal Theme
 =================================== */
 
 /* カラー設定 */
 :root {
-  --primary: #263D59;
-  --primary-dark: #1B2D43;
-  --accent: #4A7298;
-  --primary-light: #EAF0F6;
+  --primary: #4D292B;
+  --primary-dark: #392022;
+  --accent: #765553;
+  --primary-light: #F3E9E7;
 
   --background: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F5F9;
+  --surface-muted: #F7F4F2;
 
-  --text: #25313D;
-  --text-muted: #64748B;
+  --text: #352B2B;
+  --text-muted: #756967;
 
-  --border: #D5DEE7;
-  --border-strong: #A8B8C8;
+  --border: #E3D9D6;
+  --border-strong: #BBA8A3;
 
   font-family:
     system-ui,
@@ -390,7 +390,7 @@ form input:disabled {
 .logout-button:hover { background: rgba(255,255,255,.12); }
 #loginView, #resetView { max-width: 480px; margin: 0 auto; }
 #loginView h2, #resetView h2 { margin: 8px 0 24px; }
-#recoveryPanel { border-top: 1px solid var(--border, #D5DEE7); margin-top: 16px; padding-top: 10px; }
+#recoveryPanel { border-top: 1px solid var(--border, #E3D9D6); margin-top: 16px; padding-top: 10px; }
 #recoveryPanel h3 { font-size: 17px; }
 #loginMessage, #recoveryMessage, #resetMessage { line-height: 1.7; }
 
