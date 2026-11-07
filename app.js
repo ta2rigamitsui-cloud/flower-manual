@@ -275,9 +275,37 @@ function openDetailPhotos(id) {
     console.error(error); $("detailImages").textContent="写真を表示できませんでした。";
   });
 }
+// 保存直前に画像を縮小・圧縮する。透過画像はWebPで透明部分を保持する。
+async function optimizePhoto(file) {
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, {imageOrientation:"from-image"});
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, 1600 / longest);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const mime = file.type === "image/jpeg" ? "image/jpeg" : "image/webp";
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.78));
+    if (!blob || blob.type !== mime || blob.size === 0 || blob.size >= file.size) return file;
+    const ext = mime === "image/jpeg" ? "jpg" : "webp";
+    const name = file.name.replace(/\.[^.]+$/, "") + "." + ext;
+    return new File([blob], name, {type:mime, lastModified:file.lastModified});
+  } catch (error) {
+    console.warn("画像の圧縮を省略しました", error);
+    return file;
+  } finally {
+    bitmap?.close();
+  }
+}
 async function uploadPhotos(manualId) {
   const uploaded=[];
-  for (const file of selectedPhotos) {
+  for (const originalFile of selectedPhotos) {
+    const file = await optimizePhoto(originalFile);
     const ext={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"}[file.type];
     const key=`${manualId}/${crypto.randomUUID()}.${ext}`;
     const {error:storageError}=await client.storage.from(IMAGE_BUCKET)
